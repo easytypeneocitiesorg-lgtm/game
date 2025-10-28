@@ -56,7 +56,7 @@ const elHp = document.getElementById("hp");
 const elScore = document.getElementById("score");
 
 let keys = {}, mouse = {x:W/2,y:H/2,down:false};
-let bullets = [], enemies = [];
+let bullets = [], enemies = [], particles = [];
 let wave = 1, betweenWave = 0, score = 0;
 let lastShot = 0, gameOver = false;
 const player = {x:W/2,y:H/2,r:16,speed:240,hp:100};
@@ -102,8 +102,21 @@ function shoot(){
   });
 }
 
+function createExplosion(x,y,color){
+  for(let i=0;i<15;i++){
+    particles.push({
+      x,y,
+      vx:rand(-200,200),
+      vy:rand(-200,200),
+      life:rand(400,800),
+      size:rand(2,4),
+      color
+    });
+  }
+}
+
 function reset(){
-  bullets=[];enemies=[];
+  bullets=[];enemies=[];particles=[];
   player.hp=100;wave=1;score=0;gameOver=false;
   betweenWave=0;startWave();
 }
@@ -146,6 +159,17 @@ function update(dt){
     if(b.life<=0||b.x<-20||b.x>W+20||b.y<-20||b.y>H+20)bullets.splice(i,1);
   }
 
+  // particles
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.x+=p.vx*dt;
+    p.y+=p.vy*dt;
+    p.vx*=0.96;
+    p.vy*=0.96;
+    p.life-=dt*1000;
+    if(p.life<=0)particles.splice(i,1);
+  }
+
   // enemies move toward player
   for(let i=enemies.length-1;i>=0;i--){
     const e=enemies[i];
@@ -154,6 +178,7 @@ function update(dt){
     e.y+=Math.sin(ang)*e.speed*dt;
     if(dist(e,player)<e.r+player.r){
       player.hp-=8;
+      createExplosion(e.x,e.y,e.color);
       enemies.splice(i,1);
       continue;
     }
@@ -187,6 +212,7 @@ function update(dt){
         e.hp--;
         if(e.hp<=0){
           score+=10;
+          createExplosion(e.x,e.y,e.color);
           enemies.splice(i,1);
         }
         break;
@@ -218,6 +244,7 @@ function draw(){
   ctx.fillStyle="#000";
   ctx.fillRect(0,0,W,H);
 
+  // bullets
   ctx.fillStyle="#ffd";
   for(const b of bullets){
     ctx.beginPath();
@@ -225,6 +252,7 @@ function draw(){
     ctx.fill();
   }
 
+  // enemies
   for(const e of enemies){
     ctx.beginPath();
     ctx.arc(e.x,e.y,e.r,0,Math.PI*2);
@@ -232,7 +260,17 @@ function draw(){
     ctx.fill();
   }
 
-  // player (polished, no glow)
+  // particles
+  for(const p of particles){
+    ctx.globalAlpha = Math.max(0, p.life/800);
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // player
   const grad = ctx.createLinearGradient(player.x-player.r,player.y-player.r,player.x+player.r,player.y+player.r);
   grad.addColorStop(0,"#7dc8ff");
   grad.addColorStop(1,"#2767ff");
