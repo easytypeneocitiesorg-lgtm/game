@@ -139,12 +139,14 @@ function update(dt){
 
   if(mouse.down)shoot();
 
+  // bullets
   for(let i=bullets.length-1;i>=0;i--){
     const b=bullets[i];
     b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt*1000;
     if(b.life<=0||b.x<-20||b.x>W+20||b.y<-20||b.y>H+20)bullets.splice(i,1);
   }
 
+  // enemies move toward player
   for(let i=enemies.length-1;i>=0;i--){
     const e=enemies[i];
     const ang=Math.atan2(player.y-e.y,player.x-e.x);
@@ -157,6 +159,25 @@ function update(dt){
     }
   }
 
+  // enemy vs enemy collision
+  for(let i=0;i<enemies.length;i++){
+    for(let j=i+1;j<enemies.length;j++){
+      const e1=enemies[i], e2=enemies[j];
+      const d=dist(e1,e2);
+      const minDist=e1.r+e2.r;
+      if(d<minDist && d>0){
+        const overlap=(minDist-d)/2;
+        const nx=(e1.x-e2.x)/d;
+        const ny=(e1.y-e2.y)/d;
+        e1.x+=nx*overlap;
+        e1.y+=ny*overlap;
+        e2.x-=nx*overlap;
+        e2.y-=ny*overlap;
+      }
+    }
+  }
+
+  // bullet-enemy collision
   for(let i=enemies.length-1;i>=0;i--){
     const e=enemies[i];
     for(let j=bullets.length-1;j>=0;j--){
@@ -173,6 +194,7 @@ function update(dt){
     }
   }
 
+  // wave handling
   if(enemies.length===0 && betweenWave<=0){
     betweenWave=3;
   }
@@ -210,7 +232,7 @@ function draw(){
     ctx.fill();
   }
 
-  // Smooth, polished player
+  // player (polished, no glow)
   const grad = ctx.createLinearGradient(player.x-player.r,player.y-player.r,player.x+player.r,player.y+player.r);
   grad.addColorStop(0,"#7dc8ff");
   grad.addColorStop(1,"#2767ff");
