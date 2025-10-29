@@ -86,7 +86,6 @@ function shootAt(targetX,targetY){
 function selectAimbotTarget(){
   if(!cheatUnlocked) return;
   if(enemies.length===0){ aimbotTarget=null; return;}
-  // if current target is dead or null, pick closest enemy
   if(!aimbotTarget || !enemies.includes(aimbotTarget)){
     aimbotTarget = enemies.reduce((prev,curr)=>dist(curr,player)<dist(prev,player)?curr:prev);
   }
@@ -95,7 +94,7 @@ function selectAimbotTarget(){
 function autoAimAndShoot(){
   if(!cheatUnlocked || gameOver) return;
   selectAimbotTarget();
-  if(aimbotTarget) shootAt(aimbotTarget.x, aimbotTarget.y?aimbotTarget.y:aimbotTarget.y);
+  if(aimbotTarget) shootAt(aimbotTarget.x, aimbotTarget.y);
 }
 
 function createExplosion(x,y,color){
@@ -253,7 +252,7 @@ function draw(){
   // particles
   for(const p of particles){
     ctx.globalAlpha = Math.max(0,p.life/800);
-    ctx.fillStyle=p.color;
+    ctx.fillStyle = p.color;
     ctx.beginPath();
     ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
     ctx.fill();
@@ -266,7 +265,13 @@ function draw(){
   ctx.beginPath();ctx.arc(player.x,player.y,player.r,0,Math.PI*2);ctx.fillStyle=grad;ctx.fill();
   ctx.lineWidth=1.5;ctx.strokeStyle="#0d204f";ctx.stroke();
 
-  const a=Math.atan2(mouse.y-player.y,mouse.x-player.x);
+  // barrel direction (aim)
+  let aimX = mouse.x, aimY = mouse.y;
+  if(cheatUnlocked && aimbotTarget){
+    aimX = aimbotTarget.x;
+    aimY = aimbotTarget.y;
+  }
+  const a=Math.atan2(aimY-player.y,aimX-player.x);
   ctx.beginPath();ctx.moveTo(player.x,player.y);
   ctx.lineTo(player.x+Math.cos(a)*(player.r+10),player.y+Math.sin(a)*(player.r+10));
   ctx.strokeStyle="#cce3ff";ctx.lineWidth=2;ctx.stroke();
