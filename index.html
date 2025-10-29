@@ -58,9 +58,8 @@ const elScore = document.getElementById("score");
 let keys = {}, mouse = {x:W/2,y:H/2,down:false};
 let bullets = [], enemies = [], particles = [];
 let wave = 1, betweenWave = 0, score = 0;
-let lastShot = 0, gameOver = false;
+let gameOver = false;
 const player = {x:W/2,y:H/2,r:16,speed:240,hp:100};
-const shotDelay = 150;
 
 function rand(min,max){return Math.random()*(max-min)+min;}
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
@@ -88,9 +87,7 @@ function startWave(){
 startWave();
 
 function shoot(){
-  const now = performance.now();
-  if(now-lastShot<shotDelay || gameOver) return;
-  lastShot=now;
+  if(gameOver) return;
   const ang=Math.atan2(mouse.y-player.y,mouse.x-player.x);
   const spd=700;
   bullets.push({
