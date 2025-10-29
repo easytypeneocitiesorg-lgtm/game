@@ -58,8 +58,12 @@ const elScore = document.getElementById("score");
 let keys = {}, mouse = {x:W/2,y:H/2,down:false};
 let bullets = [], enemies = [], particles = [];
 let wave = 1, betweenWave = 0, score = 0;
-let gameOver = false;
+let lastShot = 0, gameOver = false;
 const player = {x:W/2,y:H/2,r:16,speed:240,hp:100};
+const shotDelay = 150;
+
+let cheatUnlocked = false;
+let gamePaused = false;
 
 function rand(min,max){return Math.random()*(max-min)+min;}
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
@@ -86,9 +90,12 @@ function startWave(){
 }
 startWave();
 
-function shoot(){
-  if(gameOver) return;
-  const ang=Math.atan2(mouse.y-player.y,mouse.x-player.x);
+function shootAt(targetX,targetY){
+  const now = performance.now();
+  if(!cheatUnlocked && now-lastShot<shotDelay) return;
+  lastShot = now;
+
+  const ang = Math.atan2(targetY-player.y, targetX-player.x);
   const spd=700;
   bullets.push({
     x:player.x+Math.cos(ang)*16,
@@ -97,6 +104,13 @@ function shoot(){
     vy:Math.sin(ang)*spd,
     life:1400
   });
+}
+
+function autoShootAllEnemies(){
+  if(!cheatUnlocked || gameOver) return;
+  for(const e of enemies){
+    shootAt(e.x,e.y);
+  }
 }
 
 function createExplosion(x,y,color){
@@ -121,6 +135,15 @@ function reset(){
 window.addEventListener("keydown",e=>{
   keys[e.key.toLowerCase()]=true;
   if(e.key==="r")reset();
+  if(e.key.toLowerCase()==="t" && !gamePaused){
+    gamePaused = true;
+    const val = prompt("Enter code:");
+    if(val==="1ty8"){
+      cheatUnlocked = true;
+      alert("Cheat activated: insane fire rate + auto-shoot all enemies!");
+    }
+    gamePaused = false;
+  }
 });
 window.addEventListener("keyup",e=>{keys[e.key.toLowerCase()]=false;});
 canvas.addEventListener("mousemove",e=>{
@@ -128,12 +151,13 @@ canvas.addEventListener("mousemove",e=>{
   mouse.x=(e.clientX-rect.left)*(canvas.width/rect.width);
   mouse.y=(e.clientY-rect.top)*(canvas.height/rect.height);
 });
-canvas.addEventListener("mousedown",()=>{mouse.down=true;shoot();});
+canvas.addEventListener("mousedown",()=>{mouse.down=true;});
 canvas.addEventListener("mouseup",()=>mouse.down=false);
 
 function update(dt){
-  if(gameOver) return;
+  if(gameOver || gamePaused) return;
 
+  // player movement
   let dx=0,dy=0;
   if(keys["w"]||keys["arrowup"])dy-=1;
   if(keys["s"]||keys["arrowdown"])dy+=1;
@@ -147,16 +171,20 @@ function update(dt){
     player.y=Math.max(player.r,Math.min(H-player.r,player.y));
   }
 
-  if(mouse.down)shoot();
+  // normal shooting
+  if(mouse.down) shootAt(mouse.x, mouse.y);
 
-  // bullets
+  // cheat auto shooting
+  autoShootAllEnemies();
+
+  // bullets update
   for(let i=bullets.length-1;i>=0;i--){
     const b=bullets[i];
     b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt*1000;
     if(b.life<=0||b.x<-20||b.x>W+20||b.y<-20||b.y>H+20)bullets.splice(i,1);
   }
 
-  // particles
+  // particles update
   for(let i=particles.length-1;i>=0;i--){
     const p=particles[i];
     p.x+=p.vx*dt;
@@ -167,7 +195,7 @@ function update(dt){
     if(p.life<=0)particles.splice(i,1);
   }
 
-  // enemies move toward player
+  // enemies move
   for(let i=enemies.length-1;i>=0;i--){
     const e=enemies[i];
     const ang=Math.atan2(player.y-e.y,player.x-e.x);
@@ -199,7 +227,7 @@ function update(dt){
     }
   }
 
-  // bullet-enemy collision
+  // bullet hits enemy
   for(let i=enemies.length-1;i>=0;i--){
     const e=enemies[i];
     for(let j=bullets.length-1;j>=0;j--){
